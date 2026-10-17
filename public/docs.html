@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SyncStorm – Docs</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0d1117;
+      --surface: #161b22;
+      --border:  #30363d;
+      --text:    #c9d1d9;
+      --muted:   #8b949e;
+      --violet:  #a78bfa;
+      --violet2: #7c3aed;
+      --cyan:    #22d3ee;
+      --green:   #34d399;
+      --red:     #f87171;
+      --amber:   #fbbf24;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.65; padding-bottom: 5rem;
+    }
+    a { color: var(--cyan); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── nav ─────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 2rem; gap: 1rem;
+    }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--violet); }
+    .nav-logo span { color: var(--cyan); }
+    .nav-links { display: flex; gap: 1.25rem; font-size: .875rem; }
+
+    /* ── layout ──────────────────────────────────── */
+    .page { max-width: 820px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+    /* ── headings ────────────────────────────────── */
+    h1 { font-size: 2rem; font-weight: 800; letter-spacing: -.03em;
+         background: linear-gradient(90deg, var(--violet), var(--cyan));
+         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+         margin-bottom: .5rem; }
+    h2 { font-size: 1.25rem; font-weight: 700; color: var(--violet);
+         margin: 2.5rem 0 .75rem; padding-top: .5rem;
+         border-top: 1px solid var(--border); }
+    h3 { font-size: 1rem; font-weight: 600; color: var(--cyan);
+         margin: 1.5rem 0 .4rem; }
+    p  { color: var(--text); margin-bottom: .8rem; }
+
+    /* ── code ────────────────────────────────────── */
+    pre {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.1rem 1.4rem;
+      font-size: .82rem; line-height: 1.75; overflow-x: auto;
+      margin: .75rem 0 1.25rem;
+    }
+    code { font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace; }
+    :not(pre) > code {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 4px; padding: .1em .4em; font-size: .85em;
+    }
+    .c  { color: #6e7681; }
+    .kw { color: var(--violet); }
+    .fn { color: var(--cyan); }
+    .st { color: #a5d6ff; }
+    .nu { color: var(--amber); }
+    .ty { color: var(--green); }
+
+    /* ── table ───────────────────────────────────── */
+    table { width: 100%; border-collapse: collapse; font-size: .875rem;
+            margin: .75rem 0 1.25rem; }
+    th { text-align: left; padding: .5rem .75rem; font-size: .75rem;
+         letter-spacing: .06em; text-transform: uppercase;
+         color: var(--muted); border-bottom: 1px solid var(--border); }
+    td { padding: .55rem .75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    td:first-child code { color: var(--cyan); }
+
+    /* ── callout ─────────────────────────────────── */
+    .callout {
+      border-left: 3px solid var(--amber); background: rgba(251,191,36,.07);
+      border-radius: 0 8px 8px 0; padding: .75rem 1rem;
+      font-size: .875rem; margin: .75rem 0 1.25rem;
+    }
+    .callout.info  { border-color: var(--cyan);   background: rgba(34,211,238,.07); }
+    .callout.ok    { border-color: var(--green);  background: rgba(52,211,153,.07); }
+    .callout.warn  { border-color: var(--amber);  background: rgba(251,191,36,.07); }
+    .callout.error { border-color: var(--red);    background: rgba(248,113,113,.07); }
+
+    /* ── badge ───────────────────────────────────── */
+    .badge {
+      display: inline-block; font-size: .7rem; font-weight: 600;
+      padding: .15em .5em; border-radius: 4px; vertical-align: middle;
+      margin-left: .3em;
+    }
+    .badge.new    { background: rgba(52,211,153,.2);  color: var(--green); }
+    .badge.method { background: rgba(167,139,250,.15); color: var(--violet); }
+    .badge.event  { background: rgba(34,211,238,.15);  color: var(--cyan); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">Sync<span>Storm</span></div>
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/demo.html">Demo</a>
+    <a href="/docs.html" style="color:var(--text)">Docs</a>
+  </div>
+</nav>
+
+<div class="page">
+
+  <h1>Documentation</h1>
+  <p>SyncStorm gives any web page rooms, shared state, live cursors, and presence
+     in roughly 10 lines of plain JavaScript — no build step, no dependencies.</p>
+
+  <!-- ── Installation ─────────────────────────────────────────── -->
+  <h2>Installation</h2>
+  <p>Drop one <code>&lt;script&gt;</code> tag into your page:</p>
+  <pre><code><span class="c">&lt;!-- Self-hosted (recommended) --&gt;</span>
+&lt;script src="<span class="st">/syncstorm.js</span>"&gt;&lt;/script&gt;
+
+<span class="c">&lt;!-- Or directly from your deployed URL --&gt;</span>
+&lt;script src="<span class="st">https://your-app.railway.app/syncstorm.js</span>"&gt;&lt;/script&gt;</code></pre>
+
+  <p>No npm, no bundler, no TypeScript required. The library is a single 300-line
+  file that uses the browser's built-in <code>WebSocket</code>.</p>
+
+  <!-- ── Quick-start ──────────────────────────────────────────── -->
+  <h2>Quick start (~10 lines)</h2>
+  <pre><code><span class="c">// 1. Join a room (creates it if it doesn't exist)</span>
+<span class="kw">const</span> room = <span class="fn">SyncStorm</span>.<span class="fn">join</span>(<span class="st">'my-room'</span>, { name: <span class="st">'Alice'</span> });
+
+<span class="c">// 2. React to shared state changes</span>
+room.<span class="fn">onState</span>(state => {
+  document.<span class="fn">getElementById</span>(<span class="st">'votes'</span>).textContent = state.votes;
+});
+
+<span class="c">// 3. React to who's in the room (including cursor positions)</span>
+room.<span class="fn">onPresence</span>(users => console.<span class="fn">log</span>(<span class="st">'online:'</span>, users.<span class="fn">map</span>(u => u.name)));
+
+<span class="c">// 4. React to connection status</span>
+room.<span class="fn">onStatus</span>(s => console.<span class="fn">log</span>(s)); <span class="c">// 'connected' | 'reconnecting' | 'disconnected'</span>
+
+<span class="c">// 5. Write shared state</span>
+room.<span class="fn">set</span>(<span class="st">'votes'</span>, <span class="nu">42</span>);
+
+<span class="c">// 6. Send live cursor position</span>
+document.<span class="fn">addEventListener</span>(<span class="st">'mousemove'</span>, e => room.<span class="fn">sendCursor</span>(e.clientX, e.clientY));
+
+<span class="c">// 7. Leave when done</span>
+room.<span class="fn">leave</span>();</code></pre>
+
+  <!-- ── API Reference ─────────────────────────────────────────── -->
+  <h2>API Reference</h2>
+
+  <h3><code>SyncStorm.join(roomId, options)</code> <span class="badge method">method</span></h3>
+  <p>Connects to the server, creates the room if it doesn't exist, and returns a
+     <code>Room</code> object. Auto-reconnect starts immediately.</p>
+  <table>
+    <tr><th>Parameter</th><th>Type</th><th>Description</th></tr>
+    <tr><td><code>roomId</code></td><td>string</td><td>Non-empty room identifier. Use crypto-random IDs for privacy (e.g. <code>crypto.randomUUID()</code>).</td></tr>
+    <tr><td><code>options.name</code></td><td>string</td><td>Display name shown to other participants. Truncated to 32 chars. Default: <code>'Anonymous'</code>.</td></tr>
+  </table>
+
+  <h3><code>room.set(key, value)</code> <span class="badge method">method</span></h3>
+  <p>Write a key into shared state. <code>value</code> can be any JSON-serialisable
+     type. While offline, the write is queued and replayed after reconnect.
+     Returns the room (chainable).</p>
+  <table>
+    <tr><th>Constraint</th><th>Limit</th></tr>
+    <tr><td>Key length</td><td>128 characters</td></tr>
+    <tr><td>Value size</td><td>8 KB (serialised JSON)</td></tr>
+    <tr><td>Message size</td><td>16 KB total</td></tr>
+  </table>
+
+  <h3><code>room.onState(callback)</code> <span class="badge event">event</span></h3>
+  <p>Fires whenever shared state changes. Receives a <strong>shallow copy</strong>
+     of the full room state object. Also fires immediately if state already exists.
+     Returns the room (chainable).</p>
+  <pre><code>room.<span class="fn">onState</span>(state => {
+  <span class="c">// state is a plain object: { key: value, ... }</span>
+  console.<span class="fn">log</span>(state.score); <span class="c">// e.g. 42</span>
+});</code></pre>
+
+  <h3><code>room.onPresence(callback)</code> <span class="badge event">event</span></h3>
+  <p>Fires when the participant list changes <em>or</em> when any participant moves
+     their cursor. Receives an array of user objects. Returns the room (chainable).</p>
+  <pre><code>room.<span class="fn">onPresence</span>(users => {
+  <span class="c">// users: Array&lt;{ id: string, name: string, cursor: {x,y} | null }&gt;</span>
+  <span class="kw">for</span> (<span class="kw">const</span> u <span class="kw">of</span> users) {
+    console.<span class="fn">log</span>(u.name, u.cursor); <span class="c">// cursor is null until they move</span>
+  }
+});</code></pre>
+
+  <h3><code>room.onStatus(callback)</code> <span class="badge event">event</span></h3>
+  <p>Fires whenever the connection state changes. Also fires immediately with the
+     current status. Returns the room (chainable).</p>
+  <pre><code>room.<span class="fn">onStatus</span>(status => {
+  <span class="c">// status: 'connected' | 'reconnecting' | 'disconnected'</span>
+});</code></pre>
+
+  <h3><code>room.sendCursor(x, y)</code> <span class="badge method">method</span></h3>
+  <p>Broadcast your pointer position to other participants.
+     Automatically throttled to ~20 fps (50 ms). Safe to call on every
+     <code>mousemove</code> event. Has no effect while offline.
+     Returns the room (chainable).</p>
+
+  <h3><code>room.disconnect()</code> <span class="badge method">method</span></h3>
+  <p>Drops the current WebSocket connection. The library auto-reconnects with
+     exponential backoff. Queued offline writes survive and are replayed on
+     reconnect. Useful for testing or simulating network drops.</p>
+
+  <h3><code>room.leave()</code> <span class="badge method">method</span></h3>
+  <p>Permanently closes the connection and discards the pending queue.
+     No further reconnect attempts are made. Call when the user navigates away.</p>
+
+  <!-- ── State consistency ─────────────────────────────────────── -->
+  <h2>State consistency</h2>
+
+  <h3>How it works</h3>
+  <p>The <strong>server is the single source of truth</strong>. Each key stores
+     <code>{ value, rev }</code> where <code>rev</code> is a strictly-increasing
+     integer assigned by the server in the order messages arrive.</p>
+
+  <h3>Conflict policy — per-key Last-Write-Wins</h3>
+  <p>When two clients write the same key concurrently, the server applies both in
+     arrival order and increments <code>rev</code> each time.
+     The <em>second</em> write wins — there is no merge or three-way diff.
+     All clients then converge to the same final value because the server
+     broadcasts the update to everyone.</p>
+
+  <div class="callout info">
+    <strong>Example:</strong> Alice writes <code>x = "alice"</code> and Bob writes
+    <code>x = "bob"</code> at the same millisecond. If Bob's message reaches the
+    server first, the final state is <code>x = "alice"</code> (Alice's write
+    arrived second). Both clients see the same update sequence.
+  </div>
+
+  <h3>Snapshot on (re)connect</h3>
+  <p>On every connect or reconnect, the server sends a full <code>snapshot</code>
+     message containing every key in the room. The client
+     <strong>replaces</strong> its local state with this snapshot — stale local
+     values never overwrite newer server data.</p>
+
+  <h3>Offline queue</h3>
+  <p>Writes made while offline are stored in a per-key queue. After the snapshot
+     arrives, queued writes are <strong>re-sent</strong> to the server in order.
+     The server applies them with the same LWW rule. This means:</p>
+  <ul style="margin:.4rem 0 .8rem 1.5rem;line-height:1.8">
+    <li>Your offline edits are not silently lost.</li>
+    <li>If another peer wrote the same key while you were offline and their write
+        has a higher rev, your queued write will overwrite it when it arrives
+        (LWW in arrival order).</li>
+    <li>This is intentional — the last client to reconnect wins for any contested key.</li>
+  </ul>
+
+  <!-- ── Reconnect ─────────────────────────────────────────────── -->
+  <h2>Automatic reconnect</h2>
+  <p>The library reconnects automatically with <strong>exponential backoff</strong>:</p>
+  <table>
+    <tr><th>Attempt</th><th>Delay</th></tr>
+    <tr><td>1st retry</td><td>1 second</td></tr>
+    <tr><td>2nd retry</td><td>2 seconds</td></tr>
+    <tr><td>3rd retry</td><td>4 seconds</td></tr>
+    <tr><td>4th retry</td><td>8 seconds</td></tr>
+    <tr><td>5th+ retry</td><td>10 seconds (cap)</td></tr>
+  </table>
+  <p>On successful reconnect: backoff resets to 1 s, snapshot is applied,
+     offline queue is replayed.</p>
+
+  <!-- ── Cursors ───────────────────────────────────────────────── -->
+  <h2>Live cursors</h2>
+  <p>Call <code>room.sendCursor(x, y)</code> on every <code>mousemove</code> event.
+     The library throttles sends to ~20 per second.
+     Other participants receive cursor data via <code>onPresence</code> — each user
+     object has a <code>cursor</code> field that is <code>null</code> until they
+     move and <code>{ x, y }</code> after that. Cursors are removed from the
+     presence list when a user disconnects.</p>
+  <pre><code>document.<span class="fn">addEventListener</span>(<span class="st">'mousemove'</span>, e => {
+  room.<span class="fn">sendCursor</span>(e.clientX, e.clientY);
+});
+
+room.<span class="fn">onPresence</span>(users => {
+  <span class="kw">for</span> (<span class="kw">const</span> u <span class="kw">of</span> users) {
+    <span class="kw">if</span> (u.cursor) moveCursorEl(u.id, u.cursor.x, u.cursor.y);
+  }
+});</code></pre>
+
+  <!-- ── Server limits ─────────────────────────────────────────── -->
+  <h2>Server-side limits</h2>
+  <table>
+    <tr><th>Limit</th><th>Value</th><th>Error returned</th></tr>
+    <tr><td>Max clients per room</td><td>50</td><td><code>Room is full</code></td></tr>
+    <tr><td>Max message size</td><td>16 KB</td><td><code>Message too large</code></td></tr>
+    <tr><td>Max key length</td><td>128 chars</td><td><code>"key" too long</code></td></tr>
+    <tr><td>Max value size</td><td>8 KB</td><td><code>"value" too large</code></td></tr>
+    <tr><td>Empty-room TTL</td><td>5 minutes</td><td>(room deleted silently)</td></tr>
+  </table>
+
+  <!-- ── Known limitations ────────────────────────────────────────────── -->
+  <h2>Known limitations</h2>
+  <div class="callout warn">
+    <strong>No persistence.</strong> Rooms live in server memory only.
+    A server restart deletes all rooms and state. Do not use SyncStorm for
+    data that must survive beyond a session.
+  </div>
+  <ul style="margin:.4rem 0 .8rem 1.5rem;line-height:2">
+    <li><strong>No authentication.</strong> Anyone who knows a room ID can join it.
+        Use unguessable crypto-random IDs to limit access.</li>
+    <li><strong>No history / event log.</strong> Late joiners get the current state
+        snapshot only, not a replay of past writes.</li>
+    <li><strong>No fine-grained CRDT.</strong> Concurrent edits to the same key
+        always resolve with LWW — the last write to arrive at the server wins.</li>
+    <li><strong>Single-process server.</strong> State is in a Node.js
+        <code>Map</code>. Horizontal scaling requires an external state store
+        (Redis pub/sub, etc.) which is out of scope for this version.</li>
+    <li><strong>Cursor positions are viewport-relative.</strong> They make sense
+        only when all clients see an identical layout.</li>
+  </ul>
+
+  <!-- ── footer ────────────────────────────────────────────────── -->
+  <hr style="border:none;border-top:1px solid var(--border);margin:2.5rem 0 1.5rem" />
+  <p style="font-size:.8rem;color:var(--muted);">
+    SyncStorm · HACKODEC PS1 · MIT licence ·
+    <a href="/">Home</a> · <a href="/demo.html">Demo</a>
+  </p>
+
+</div>
+</body>
+</html>

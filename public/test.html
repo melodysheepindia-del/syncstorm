@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SyncStorm – M1 Connection Test</title>
+  <style>
+    body { font-family: monospace; background: #0d1117; color: #c9d1d9; padding: 2rem; }
+    h2   { color: #a78bfa; }
+    #log { background: #161b22; border: 1px solid #30363d; padding: 1rem;
+           height: 260px; overflow-y: auto; margin-top: 1rem; border-radius: 6px; }
+    .row { display: flex; gap: .5rem; margin-top: 1rem; }
+    input { flex: 1; padding: .4rem .8rem; background: #161b22; color: #c9d1d9;
+            border: 1px solid #30363d; border-radius: 4px; font-family: monospace; }
+    button { padding: .4rem 1rem; background: #7c3aed; color: #fff;
+             border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #6d28d9; }
+    .in  { color: #34d399; }
+    .out { color: #60a5fa; }
+    .err { color: #f87171; }
+    #status { font-size: .85rem; margin-top: .5rem; }
+  </style>
+</head>
+<body>
+  <h2>SyncStorm M1 – Echo-bus test</h2>
+  <p>Open this page in <strong>two browser tabs</strong>.
+     Type a message in one tab and watch it appear in the other.</p>
+
+  <div id="status">⏳ Connecting…</div>
+
+  <div id="log"></div>
+
+  <div class="row">
+    <input id="txt" placeholder='e.g. {"hello":"world"}' />
+    <button onclick="send()">Send JSON</button>
+  </div>
+
+  <script>
+    // Connect to the WS server at the same origin (no CORS, no hard-coded port)
+    const ws  = new WebSocket(`ws://${location.host}/ws`);
+    const log = document.getElementById('log');
+    const statusEl = document.getElementById('status');
+
+    function append(cls, label, data) {
+      const line = document.createElement('div');
+      line.className = cls;
+      line.textContent = `[${label}] ${typeof data === 'string' ? data : JSON.stringify(data)}`;
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    ws.onopen  = () => { statusEl.textContent = '🟢 Connected'; append('in','OPEN','WebSocket connected'); };
+    ws.onclose = () => { statusEl.textContent = '🔴 Disconnected'; append('err','CLOSE','WebSocket closed'); };
+    ws.onerror = () => { append('err','ERROR','WebSocket error'); };
+    ws.onmessage = (e) => {
+      try   { append('in', 'RECV', JSON.parse(e.data)); }
+      catch { append('in', 'RECV', e.data); }
+    };
+
+    function send() {
+      const txt = document.getElementById('txt').value.trim();
+      if (!txt) return;
+      try {
+        const obj = JSON.parse(txt);
+        ws.send(JSON.stringify(obj));
+        append('out', 'SENT', obj);
+      } catch {
+        append('err', 'ERR', 'Not valid JSON – try: {"hello":"world"}');
+      }
+    }
+
+    // also allow Enter key
+    document.getElementById('txt').addEventListener('keydown', e => {
+      if (e.key === 'Enter') send();
+    });
+  </script>
+</body>
+</html>

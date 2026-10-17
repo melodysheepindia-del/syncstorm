@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SyncStorm – M2 Room Test</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body  { font-family: monospace; background: #0d1117; color: #c9d1d9;
+            padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    h2    { color: #a78bfa; }
+    label { font-size: .8rem; color: #8b949e; }
+    input, select {
+      background: #161b22; color: #c9d1d9; border: 1px solid #30363d;
+      border-radius: 4px; padding: .35rem .7rem; font-family: monospace;
+      width: 100%;
+    }
+    .row  { display: flex; gap: .5rem; align-items: flex-end; }
+    .row input { flex: 1; }
+    button {
+      padding: .4rem 1rem; background: #7c3aed; color: #fff;
+      border: none; border-radius: 4px; cursor: pointer; white-space: nowrap;
+    }
+    button:hover { background: #6d28d9; }
+    button.sec   { background: #0e7490; }
+    button.sec:hover { background: #0c6383; }
+    #log {
+      background: #161b22; border: 1px solid #30363d; padding: .8rem;
+      height: 220px; overflow-y: auto; border-radius: 6px; font-size: .8rem;
+    }
+    #state-box {
+      background: #161b22; border: 1px solid #30363d; padding: .8rem;
+      border-radius: 6px; font-size: .8rem; min-height: 60px;
+    }
+    .in  { color: #34d399; }
+    .out { color: #60a5fa; }
+    .err { color: #f87171; }
+    .tag { color: #fbbf24; }
+    #badge {
+      display: inline-block; padding: .2rem .6rem; border-radius: 99px;
+      font-size: .75rem; background: #1f2937; color: #9ca3af;
+    }
+    #badge.ok  { background: #064e3b; color: #34d399; }
+    #badge.err { background: #450a0a; color: #f87171; }
+  </style>
+</head>
+<body>
+
+<h2>SyncStorm M2 – Room &amp; Shared State Test</h2>
+<p style="font-size:.85rem;color:#8b949e">
+  Open in <strong style="color:#c9d1d9">3 tabs</strong>.
+  Use the same Room ID in all tabs. Tab 1 sets a key → tabs 2 &amp; 3 see it live.
+  Late-joining Tab 3 gets a full <em>snapshot</em>.
+</p>
+
+<!-- status badge -->
+<div><span id="badge">⏳ disconnected</span></div>
+
+<!-- room setup -->
+<div>
+  <label>Room ID (paste the same value in every tab)</label>
+  <div class="row" style="margin-top:.3rem">
+    <input id="roomId" placeholder="e.g. test-room-1" />
+    <input id="name"   placeholder="Your name" style="max-width:140px" value="Alice" />
+    <button onclick="join()">Join</button>
+    <button class="sec" onclick="genRoom()">New ID</button>
+  </div>
+</div>
+
+<!-- set a key -->
+<div>
+  <label>Set a key in shared state</label>
+  <div class="row" style="margin-top:.3rem">
+    <input id="setKey"   placeholder='key  e.g. "poll"' style="max-width:140px" />
+    <input id="setValue" placeholder='value (any JSON, e.g. {"a":1,"b":2})' />
+    <button onclick="sendSet()">Set</button>
+  </div>
+</div>
+
+<!-- current shared state -->
+<div>
+  <label>Current shared state (updates live)</label>
+  <pre id="state-box" style="margin-top:.3rem">–</pre>
+</div>
+
+<!-- message log -->
+<div>
+  <label>Message log</label>
+  <div id="log" style="margin-top:.3rem"></div>
+</div>
+
+<script>
+  let ws = null;
+  let sharedState = {};   // our local mirror of room state
+
+  const logEl    = document.getElementById('log');
+  const stateEl  = document.getElementById('state-box');
+  const badgeEl  = document.getElementById('badge');
+
+  // ── pre-fill a room ID from the URL so sharing a link works ─────────────
+  const params = new URLSearchParams(location.search);
+  if (params.get('room')) document.getElementById('roomId').value = params.get('room');
+
+  function log(cls, tag, data) {
+    const d = document.createElement('div');
+    d.className = cls;
+    d.textContent = `[${tag}] ${typeof data === 'string' ? data : JSON.stringify(data)}`;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function updateStateBox() {
+    stateEl.textContent = JSON.stringify(sharedState, null, 2) || '(empty)';
+  }
+
+  function setBadge(text, cls) {
+    badgeEl.textContent = text;
+    badgeEl.className   = cls;
+  }
+
+  function genRoom() {
+    // simple random ID good enough for testing
+    const id = Math.random().toString(36).slice(2, 10);
+    document.getElementById('roomId').value = id;
+    // update URL so you can copy-paste the link to other tabs
+    history.replaceState(null, '', `?room=${id}`);
+  }
+
+  function connect() {
+    if (ws && ws.readyState < 2) return;   // already open or connecting
+    ws = new WebSocket(`ws://${location.host}/ws`);
+    setBadge('⏳ connecting…', '');
+
+    ws.onopen  = () => { setBadge('🟢 connected', 'ok'); log('in', 'OPEN', 'WebSocket connected'); };
+    ws.onclose = () => { setBadge('🔴 disconnected', 'err'); log('err', 'CLOSE', 'WebSocket closed'); };
+    ws.onerror = () => { log('err', 'ERROR', 'WebSocket error'); };
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      log('in', msg.type.toUpperCase(), msg);
+      handleMsg(msg);
+    };
+  }
+
+  function handleMsg(msg) {
+    if (msg.type === 'snapshot') {
+      // Replace local state with server snapshot
+      sharedState = {};
+      for (const [k, entry] of Object.entries(msg.state)) {
+        sharedState[k] = entry.value;
+      }
+      updateStateBox();
+    }
+    if (msg.type === 'update') {
+      sharedState[msg.key] = msg.value;
+      updateStateBox();
+    }
+  }
+
+  function send(obj) {
+    if (!ws || ws.readyState !== 1) { alert('Not connected – click Join first'); return; }
+    ws.send(JSON.stringify(obj));
+    log('out', obj.type.toUpperCase(), obj);
+  }
+
+  function join() {
+    const roomId = document.getElementById('roomId').value.trim();
+    const name   = document.getElementById('name').value.trim() || 'Anonymous';
+    if (!roomId) { alert('Enter a room ID'); return; }
+    // update URL for easy sharing
+    history.replaceState(null, '', `?room=${roomId}`);
+    connect();
+    // small delay so socket can open if it was just created
+    setTimeout(() => send({ type: 'join', roomId, name }), ws.readyState === 1 ? 0 : 300);
+  }
+
+  function sendSet() {
+    const key = document.getElementById('setKey').value.trim();
+    let value;
+    const raw = document.getElementById('setValue').value.trim();
+    if (!key || !raw) { alert('Fill in both key and value'); return; }
+    try   { value = JSON.parse(raw); }
+    catch { alert('Value must be valid JSON (e.g. "hello" or {"a":1})'); return; }
+    send({ type: 'set', key, value });
+  }
+</script>
+</body>
+</html>

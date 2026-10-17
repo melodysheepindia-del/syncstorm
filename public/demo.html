@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SyncStorm – Live Poll Demo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #0d1117;
+      --surface: #161b22;
+      --border:  #30363d;
+      --text:    #c9d1d9;
+      --muted:   #8b949e;
+      --violet:  #a78bfa;
+      --violet2: #7c3aed;
+      --cyan:    #22d3ee;
+      --green:   #34d399;
+      --red:     #f87171;
+      --amber:   #fbbf24;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 1.5rem 1rem 4rem; gap: 1.5rem;
+    }
+
+    /* ── header ─────────────────────────────────────────── */
+    header {
+      width: 100%; max-width: 720px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: .5rem;
+    }
+    .logo { font-size: 1.3rem; font-weight: 700; color: var(--violet); letter-spacing:-.02em; }
+    .logo span { color: var(--cyan); }
+
+    /* ── status badge ────────────────────────────────────── */
+    #status-badge {
+      display: flex; align-items: center; gap: .4rem;
+      font-size: .75rem; padding: .25rem .7rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 99px; color: var(--muted); user-select: none;
+    }
+    #status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink:0; }
+    #status-dot.connected    { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+    #status-dot.reconnecting { background: var(--amber);  animation: pulse 1s infinite; }
+    #status-dot.disconnected { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── card ────────────────────────────────────────────── */
+    .card {
+      width: 100%; max-width: 720px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.25rem 1.5rem;
+    }
+    .card-title {
+      font-size: .72rem; font-weight: 600; letter-spacing: .08em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 1rem;
+    }
+
+    /* ── buttons ─────────────────────────────────────────── */
+    button {
+      padding: .4rem 1rem; border: none; border-radius: 6px;
+      font-size: .85rem; cursor: pointer; font-weight: 500;
+      transition: opacity .15s, transform .1s;
+    }
+    button:active { transform: scale(.97); }
+    button:hover  { opacity: .85; }
+    .btn-primary { background: var(--violet2); color: #fff; }
+    .btn-danger  { background: #7f1d1d; color: var(--red); border: 1px solid #991b1b; }
+    .btn-ghost   { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+    .btn-cyan    { background: #083344; color: var(--cyan); border: 1px solid #0e4f63; }
+
+    /* ── share ───────────────────────────────────────────── */
+    #share-link {
+      font-size: .8rem; color: var(--cyan);
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: .4rem .8rem;
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* ── poll options ────────────────────────────────────── */
+    #poll-options { display: flex; flex-direction: column; gap: .75rem; }
+    .option {
+      display: flex; align-items: center; gap: .75rem;
+      background: var(--bg); border: 2px solid var(--border);
+      border-radius: 8px; padding: .75rem 1rem;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: border-color .2s, transform .1s;
+      user-select: none;
+    }
+    .option:hover  { border-color: var(--violet); }
+    .option.voted  { border-color: var(--violet2); }
+    .option:active { transform: scale(.99); }
+    .option-fill {
+      position: absolute; left: 0; top: 0; height: 100%;
+      background: rgba(124,58,237,.14); pointer-events: none;
+      transition: width .4s cubic-bezier(.4,0,.2,1);
+    }
+    .option-label { flex: 1; font-weight: 500; position: relative; z-index:1; }
+    .option-pct   { font-size: .85rem; color: var(--muted); position:relative;z-index:1;width:3.5rem;text-align:right; }
+    .option-count { font-size: .75rem; color: var(--violet); position:relative;z-index:1;width:4.5rem;text-align:right; }
+
+    /* ── participants ────────────────────────────────────── */
+    #participants { display: flex; flex-wrap: wrap; gap: .4rem; min-height: 28px; }
+    .participant-chip {
+      display: flex; align-items: center; gap: .35rem;
+      font-size: .75rem; padding: .2rem .65rem;
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 99px; transition: border-color .2s;
+    }
+    .participant-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; }
+
+    /* ── offline queue indicator ─────────────────────────── */
+    #offline-queue {
+      font-size: .75rem; color: var(--amber);
+      display: none; margin-top: .5rem;
+    }
+
+    /* ── cursor overlay ──────────────────────────────────── */
+    #cursor-layer {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none; z-index: 9000;
+    }
+    .cursor-label {
+      position: absolute; display: flex; align-items: center; gap: 4px;
+      transform: translate(12px, -4px);
+      transition: left .06s linear, top .06s linear;
+      pointer-events: none;
+    }
+    .cursor-arrow {
+      width: 0; height: 0; flex-shrink: 0;
+      border-left: 7px solid transparent;
+      border-right: 0px solid transparent;
+      border-bottom: 12px solid currentColor;
+      transform: rotate(-30deg) translateY(-2px);
+    }
+    .cursor-name {
+      font-size: .7rem; font-weight: 600;
+      padding: 2px 6px; border-radius: 4px;
+      white-space: nowrap; color: #fff;
+    }
+
+    /* ── toolbar ─────────────────────────────────────────── */
+    .toolbar { display: flex; gap: .5rem; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+
+<!-- cursor overlay – lives outside the flow -->
+<div id="cursor-layer"></div>
+
+<!-- ── header ────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">Sync<span>Storm</span>
+    <small style="font-size:.7rem;color:var(--muted);font-weight:400"> Live Poll</small>
+  </div>
+  <div id="status-badge">
+    <div id="status-dot" class="disconnected"></div>
+    <span id="status-text">disconnected</span>
+  </div>
+</header>
+
+<!-- ── share ─────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-title">Share this room</div>
+  <div style="display:flex;gap:.5rem;align-items:center;">
+    <span id="share-link">–</span>
+    <button class="btn-cyan" onclick="copyLink()">Copy link</button>
+  </div>
+</div>
+
+<!-- ── poll ──────────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-title">Question</div>
+  <p style="font-size:1.1rem;font-weight:600;margin-bottom:1rem;">
+    Which feature matters most for a multiplayer SDK?
+  </p>
+  <div id="poll-options"></div>
+</div>
+
+<!-- ── participants ───────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-title">In this room (<span id="peer-count">0</span>)</div>
+  <div id="participants">
+    <span style="color:var(--muted);font-size:.8rem">Connecting…</span>
+  </div>
+</div>
+
+<!-- ── controls ───────────────────────────────────────────────── -->
+<div class="card">
+  <div class="card-title">Controls</div>
+  <div class="toolbar">
+    <button class="btn-danger"  id="offline-btn" onclick="toggleOffline()">🔌 Go offline</button>
+    <button class="btn-ghost"   onclick="resetVotes()">Reset votes</button>
+    <a href="/" style="text-decoration:none"><button class="btn-ghost">← Home</button></a>
+    <a href="/docs.html" style="text-decoration:none"><button class="btn-ghost">📖 Docs</button></a>
+  </div>
+  <div id="offline-queue"></div>
+  <p style="font-size:.75rem;color:var(--muted);margin-top:.75rem;">
+    <strong style="color:var(--text)">"Go offline"</strong> really closes the socket.
+    Vote while disconnected — the queued write replays automatically on reconnect.
+    Move your mouse to see live cursors from other tabs.
+  </p>
+</div>
+
+<script src="/syncstorm.js"></script>
+<script>
+// ── Poll definition ──────────────────────────────────────────────────────────
+const OPTIONS = [
+  { id: 'opt_lww',      label: 'Conflict-free LWW sync'  },
+  { id: 'opt_presence', label: 'Live presence & cursors'  },
+  { id: 'opt_offline',  label: 'Offline-first queue'      },
+  { id: 'opt_simple',   label: 'Dead-simple API'          },
+];
+
+// ── Color palette (peer → deterministic color) ───────────────────────────────
+const PALETTE = ['#a78bfa','#22d3ee','#34d399','#fbbf24','#f87171','#fb923c','#e879f9','#38bdf8'];
+function colorFor(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = Math.imul(31, h) + id.charCodeAt(i) | 0;
+  return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
+// ── Room setup ───────────────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+let roomId   = params.get('room');
+if (!roomId) {
+  roomId = crypto.randomUUID().slice(0, 8);
+  history.replaceState(null, '', `?room=${roomId}`);
+}
+document.getElementById('share-link').textContent = location.href;
+
+const NAMES  = ['Alice','Bob','Carol','Dave','Eve','Frank','Grace','Heidi'];
+const myName = NAMES[Math.floor(Math.random() * NAMES.length)] + '-' + Math.random().toString(36).slice(2,5);
+
+// ── ~10-line SyncStorm integration ────────────────────────────────────────────
+let room = SyncStorm.join(roomId, { name: myName });
+
+room.onStatus(s  => setStatus(s));
+room.onState(s   => renderPoll(s));
+room.onPresence(u => { renderParticipants(u); renderCursors(u); });
+// ── End of integration ────────────────────────────────────────────────────────
+
+// ── Cursor tracking ──────────────────────────────────────────────────────────
+document.addEventListener('mousemove', e => {
+  room.sendCursor(e.clientX, e.clientY);
+});
+
+// ── Status ───────────────────────────────────────────────────────────────────
+let isOffline = false;
+
+function setStatus(s) {
+  document.getElementById('status-dot').className = s;
+  document.getElementById('status-text').textContent = s;
+  if (s === 'connected') {
+    isOffline = false;
+    document.getElementById('offline-btn').textContent = '🔌 Go offline';
+    updateQueueIndicator();
+  }
+  if (s === 'reconnecting') {
+    updateQueueIndicator();
+  }
+}
+
+function updateQueueIndicator() {
+  const el = document.getElementById('offline-queue');
+  const q  = room._queue ? room._queue.length : 0;
+  if (q > 0) {
+    el.style.display = 'block';
+    el.textContent   = `⏳ ${q} offline write${q>1?'s':''} queued — will replay on reconnect`;
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// ── Go offline / back online ─────────────────────────────────────────────────
+function toggleOffline() {
+  const btn = document.getElementById('offline-btn');
+  if (!isOffline) {
+    isOffline = true;
+    btn.textContent = '🔄 Reconnecting… (click to cancel)';
+    room.disconnect();   // drops socket; library reconnects automatically
+    updateQueueIndicator();
+  } else {
+    // user wants to cancel reconnect and stay disconnected
+    room.leave();
+    isOffline = false;
+    btn.textContent = '🔌 Go offline';
+    setStatus('disconnected');
+  }
+}
+
+// ── Poll rendering ───────────────────────────────────────────────────────────
+let myVote    = null;
+let lastState = {};
+
+function renderPoll(state) {
+  lastState = state;
+  const container = document.getElementById('poll-options');
+  let total = 0;
+  for (const opt of OPTIONS) {
+    const v = state[opt.id];
+    total += typeof v === 'number' ? v : 0;
+  }
+  container.innerHTML = '';
+  for (const opt of OPTIONS) {
+    const count = typeof state[opt.id] === 'number' ? state[opt.id] : 0;
+    const pct   = total > 0 ? Math.round((count / total) * 100) : 0;
+    const voted = myVote === opt.id;
+
+    const div = document.createElement('div');
+    div.className = 'option' + (voted ? ' voted' : '');
+    div.innerHTML = `
+      <div class="option-fill" style="width:${pct}%"></div>
+      <span class="option-label">${opt.label}</span>
+      <span class="option-pct">${pct}%</span>
+      <span class="option-count">${count} vote${count !== 1 ? 's' : ''}</span>
+    `;
+    div.addEventListener('click', () => castVote(opt.id));
+    container.appendChild(div);
+  }
+  updateQueueIndicator();
+}
+
+function castVote(optId) {
+  const newCounts = {};
+  for (const opt of OPTIONS) {
+    let c = typeof lastState[opt.id] === 'number' ? lastState[opt.id] : 0;
+    if (opt.id === myVote) c = Math.max(0, c - 1);  // remove old vote
+    if (opt.id === optId)  c += 1;                  // add new vote
+    newCounts[opt.id] = c;
+  }
+  myVote = optId;
+  for (const opt of OPTIONS) {
+    room.set(opt.id, newCounts[opt.id]);
+  }
+}
+
+function resetVotes() {
+  myVote = null;
+  for (const opt of OPTIONS) room.set(opt.id, 0);
+}
+
+// ── Participants ─────────────────────────────────────────────────────────────
+function renderParticipants(users) {
+  document.getElementById('peer-count').textContent = users.length;
+  const el = document.getElementById('participants');
+  if (users.length === 0) {
+    el.innerHTML = '<span style="color:var(--muted);font-size:.8rem">No one yet</span>';
+    return;
+  }
+  el.innerHTML = '';
+  for (const u of users) {
+    const chip = document.createElement('div');
+    chip.className = 'participant-chip';
+    chip.style.borderColor = colorFor(u.id) + '55';
+    chip.innerHTML = `
+      <div class="participant-dot" style="background:${colorFor(u.id)}"></div>
+      <span>${u.name}</span>
+    `;
+    el.appendChild(chip);
+  }
+}
+
+// ── Cursors ──────────────────────────────────────────────────────────────────
+const cursorEls = {};  // clientId → DOM element
+
+function renderCursors(users) {
+  const layer     = document.getElementById('cursor-layer');
+  const activeIds = new Set(users.map(u => u.id));
+
+  // Remove cursors for users who left
+  for (const [id, el] of Object.entries(cursorEls)) {
+    if (!activeIds.has(id)) {
+      el.remove();
+      delete cursorEls[id];
+    }
+  }
+
+  for (const u of users) {
+    if (!u.cursor) continue;
+    const color = colorFor(u.id);
+
+    let el = cursorEls[u.id];
+    if (!el) {
+      el = document.createElement('div');
+      el.className = 'cursor-label';
+      el.innerHTML = `
+        <div class="cursor-arrow" style="color:${color}"></div>
+        <div class="cursor-name"  style="background:${color}">${u.name}</div>
+      `;
+      layer.appendChild(el);
+      cursorEls[u.id] = el;
+    }
+
+    el.style.left = u.cursor.x + 'px';
+    el.style.top  = u.cursor.y + 'px';
+  }
+}
+
+// ── Utilities ────────────────────────────────────────────────────────────────
+function copyLink() {
+  navigator.clipboard.writeText(location.href)
+    .then(() => alert('✅ Link copied to clipboard!'))
+    .catch(() => prompt('Copy this link:', location.href));
+}
+</script>
+</body>
+</html>
